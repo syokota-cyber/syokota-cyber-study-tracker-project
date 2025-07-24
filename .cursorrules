@@ -1,0 +1,60 @@
+# StudyTracker Project - Cursor Rules
+
+## プロジェクト概要
+StudyTrackerは個人の学習進捗・目標管理・知識蓄積を統合的に管理するWebアプリケーションです。
+Git/GitHub学習を中心とした実践的な開発経験の獲得が目的です。
+
+## 技術スタック
+- バックエンド: Python 3.11+, FastAPI, SQLite, SQLAlchemy
+- フロントエンド: Vue.js 3.x / React 18.x, Tailwind CSS, Chart.js
+- インフラ: Docker, GitHub Actions, CI/CD
+- テスト: pytest, テストカバレッジ80%以上
+
+## 開発ルール
+1. **Git Flowワークフロー**: feature/bugfix/hotfix/releaseブランチを使用
+2. **コミットメッセージ**: Conventional Commits形式（feat:, fix:, docs:, etc.）
+3. **テスト駆動開発**: 新機能実装前にテストを作成
+4. **コード品質**: Black（フォーマット）、Flake8（リンター）を使用
+5. **ドキュメント**: 重要な変更はドキュメントを更新
+
+## プロジェクト構造
+```
+study-tracker/
+├── src/                    # ソースコード
+│   ├── models/            # データモデル
+│   ├── database/          # データベース関連
+│   ├── cli/               # CLIインターフェース
+│   └── api/               # FastAPI関連
+├── tests/                 # テストファイル
+├── docs/                  # ドキュメント
+├── requirements/          # 要件定義・仕様書
+├── rules/                 # 開発ルール
+├── plans/                 # 学習計画
+└── logs/                  # 学習ログ
+```
+
+## AIアシスタントの役割
+1. **コード生成**: 要件に基づいた効率的なコード生成
+2. **学習支援**: 技術的な質問への回答・説明
+3. **品質保証**: コードレビュー・改善提案
+4. **進捗管理**: 学習ログの作成支援・進捗確認
+
+## 学習目標（Phase 1）
+- Git Flowワークフローの完全習得
+- FastAPIによるRESTful API開発
+- Vue.js/Reactによるフロントエンド開発
+- CI/CDパイプラインの構築
+- テスト駆動開発の実践
+
+## コミュニケーション
+- 質問は具体的で明確に
+- エラーは詳細な情報と共に報告
+- 学習進捗は定期的に共有
+- 技術的な発見は記録・共有
+
+## 品質基準
+- テストカバレッジ: 80%以上
+- コードフォーマット: Black準拠
+- リンター: Flake8合格
+- ドキュメント: 適切な更新
+- コミット: 意味のあるメッセージ 
