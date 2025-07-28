@@ -9,6 +9,7 @@ Git/GitHub学習を中心とした実践的な開発経験の獲得が目的で�
 - フロントエンド: Vue.js 3.x / React 18.x, Tailwind CSS, Chart.js
 - インフラ: Docker, GitHub Actions, CI/CD
 - テスト: pytest, テストカバレッジ80%以上
+- API開発: FastAPI + Swagger UI
 
 ## 開発ルール
 1. **Git Flowワークフロー**: feature/bugfix/hotfix/releaseブランチを使用
@@ -16,6 +17,49 @@ Git/GitHub学習を中心とした実践的な開発経験の獲得が目的で�
 3. **テスト駆動開発**: 新機能実装前にテストを作成
 4. **コード品質**: Black（フォーマット）、Flake8（リンター）を使用
 5. **ドキュメント**: 重要な変更はドキュメントを更新
+6. **API開発**: FastAPI + Swagger UIで自動ドキュメント生成
+
+## FastAPI + Swagger運用ルール
+
+### API開発フロー
+1. **FastAPIでエンドポイントを定義**
+   ```python
+   @app.post("/api/v1/study-records/")
+   async def create_study_record(record: StudyRecordCreate):
+       """学習記録を作成"""
+       return created_record
+   ```
+
+2. **Swagger UIで自動ドキュメント生成**
+   - http://localhost:8000/docs でAPI仕様書を確認
+   - インタラクティブなテスト環境を活用
+   - チーム内でAPI仕様を共有
+
+3. **フロントエンド開発との連携**
+   - Swagger UIをフロントエンド開発者と共有
+   - API仕様書として活用
+   - リアルタイムでAPIテストを実行
+
+### 開発環境での運用
+```bash
+# 開発サーバー起動
+uvicorn src.api.main:app --reload --host 127.0.0.1 --port 8000
+
+# アクセスURL
+# APIドキュメント: http://localhost:8000/docs
+# APIエンドポイント: http://localhost:8000/api/v1/
+# ヘルスチェック: http://localhost:8000/health
+```
+
+### 本番環境での運用
+```bash
+# 本番サーバー起動
+uvicorn src.api.main:app --host 0.0.0.0 --port 80
+
+# Docker化
+docker build -t study-tracker-api .
+docker run -p 80:80 study-tracker-api
+```
 
 ## プロジェクト構造
 ```
@@ -25,6 +69,8 @@ study-tracker/
 │   ├── database/          # データベース関連
 │   ├── cli/               # CLIインターフェース
 │   └── api/               # FastAPI関連
+│       ├── main.py        # FastAPIアプリケーション
+│       └── routes.py      # APIルート定義
 ├── tests/                 # テストファイル
 ├── docs/                  # ドキュメント
 ├── requirements/          # 要件定義・仕様書
@@ -38,10 +84,12 @@ study-tracker/
 2. **学習支援**: 技術的な質問への回答・説明
 3. **品質保証**: コードレビュー・改善提案
 4. **進捗管理**: 学習ログの作成支援・進捗確認
+5. **API開発支援**: FastAPI + Swagger UIの活用指導
 
 ## 学習目標（Phase 1）
 - Git Flowワークフローの完全習得
 - FastAPIによるRESTful API開発
+- Swagger UIによるAPIドキュメント自動生成
 - Vue.js/Reactによるフロントエンド開発
 - CI/CDパイプラインの構築
 - テスト駆動開発の実践
@@ -51,10 +99,18 @@ study-tracker/
 - エラーは詳細な情報と共に報告
 - 学習進捗は定期的に共有
 - 技術的な発見は記録・共有
+- API仕様の変更はSwagger UIで共有
 
 ## 品質基準
 - テストカバレッジ: 80%以上
 - コードフォーマット: Black準拠
 - リンター: Flake8合格
 - ドキュメント: 適切な更新
-- コミット: 意味のあるメッセージ 
+- コミット: 意味のあるメッセージ
+- API仕様: Swagger UIで自動生成・最新維持
+
+## リポジトリ情報
+- **GitHubリポジトリ**: https://github.com/syokota-cyber/syokota-cyber-study-tracker-project
+- **学習ログ**: logs/daily-logs/
+- **進捗追跡**: logs/progress-tracker.md
+- **APIドキュメント**: http://localhost:8000/docs（開発サーバー起動時） 

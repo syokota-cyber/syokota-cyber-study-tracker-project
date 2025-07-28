@@ -11,6 +11,50 @@
 
 ---
 
+## 🚀 クイックスタート
+
+### 開発環境のセットアップ
+```bash
+# リポジトリをクローン
+git clone https://github.com/syokota-cyber/syokota-cyber-study-tracker-project.git
+cd study-tracker-project
+
+# 仮想環境を作成・アクティベート
+python3 -m venv venv
+source venv/bin/activate
+
+# 依存関係をインストール
+pip install -r requirements.txt
+```
+
+### FastAPIサーバーの起動
+```bash
+# 開発サーバーを起動
+uvicorn src.api.main:app --reload --host 127.0.0.1 --port 8000
+```
+
+### アクセス方法
+- **APIドキュメント**: http://localhost:8000/docs
+- **APIエンドポイント**: http://localhost:8000/api/v1/
+- **ヘルスチェック**: http://localhost:8000/health
+
+### CLIツールの使用
+```bash
+# 学習記録を追加
+python -m src.cli.main add "FastAPI学習" --content "Swagger UIの使い方" --time 60 --category "バックエンド" --difficulty 2
+
+# 学習記録一覧を表示
+python -m src.cli.main list
+
+# 統計情報を表示
+python -m src.cli.main stats --category
+
+# データをエクスポート
+python -m src.cli.main export csv --all-fields
+```
+
+---
+
 ## 📁 プロジェクト構造
 
 ```
@@ -32,6 +76,14 @@ study-tracker-project/
 │   ├── phase1-plan.md         # Phase 1詳細計画
 │   ├── learning-schedule.md   # 学習スケジュール
 │   └── milestones.md          # マイルストーン
+├── src/                        # ソースコード
+│   ├── models/                # データモデル
+│   ├── database/              # データベース関連
+│   ├── cli/                   # CLIインターフェース
+│   └── api/                   # FastAPI関連
+│       ├── main.py            # FastAPIアプリケーション
+│       └── routes.py          # APIルート定義
+├── tests/                      # テストファイル
 └── logs/                       # 学習ログ・進捗記録
     ├── daily-logs/            # 日次学習ログ
     ├── weekly-reviews/        # 週次振り返り
@@ -69,6 +121,7 @@ study-tracker-project/
 - **データベース**: SQLite → PostgreSQL
 - **ORM**: SQLAlchemy
 - **テスト**: pytest
+- **API開発**: FastAPI + Swagger UI
 
 ### フロントエンド
 - **言語**: JavaScript/TypeScript
@@ -94,142 +147,138 @@ study-tracker-project/
 - ✅ 学習時間の記録
 
 ### 高度な機能
-- 🔄 検索・フィルタリング
-- 🔄 統計・可視化
+- ✅ 検索・フィルタリング
+- ✅ 統計・可視化
 - 🔄 リマインダー・通知
-- 🔄 データエクスポート
-
-### AI機能（将来）
-- 📋 学習パターン分析
-- 📋 自動推奨機能
-- 📋 自然言語処理
-- 📋 予測機能
+- ✅ データエクスポート
 
 ---
 
-## 🎯 学習目標
+## 🔧 FastAPI + Swagger活用方法
 
-### Git/GitHubスキル
-- [ ] Git Flowワークフローの完全習得
-- [ ] プルリクエスト・レビューの実践
-- [ ] CI/CDパイプラインの高度化
-- [ ] セキュリティ・品質管理の実装
+### API開発フロー
+1. **FastAPIでエンドポイントを定義**
+   ```python
+   @app.post("/api/v1/study-records/")
+   async def create_study_record(record: StudyRecordCreate):
+       """学習記録を作成"""
+       return created_record
+   ```
 
-### 開発スキル
-- [ ] FastAPIによるWeb API開発
-- [ ] Vue.js/Reactによるフロントエンド開発
-- [ ] テスト駆動開発の実践
-- [ ] Docker・クラウドデプロイ
+2. **Swagger UIで自動ドキュメント生成**
+   - http://localhost:8000/docs でAPI仕様書を確認
+   - インタラクティブなテスト環境を活用
+   - チーム内でAPI仕様を共有
 
-### プロジェクト管理
-- [ ] 要件定義・仕様書作成
-- [ ] 段階的な機能開発
-- [ ] 品質保証・テスト戦略
-- [ ] ドキュメント管理
+3. **フロントエンド開発との連携**
+   - Swagger UIをフロントエンド開発者と共有
+   - API仕様書として活用
+   - リアルタイムでAPIテストを実行
 
----
-
-## 📝 学習記録
-
-### 記録方法
-- **日次ログ**: 毎日の学習内容・進捗
-- **週次振り返り**: 週末の学習内容整理
-- **月次総括**: 月単位での成果・課題の整理
-- **技術メモ**: 学んだ技術の詳細記録
-
-### 活用方法
-- **ポートフォリオ**: 技術スキルの証明資料
-- **技術ブログ**: 学習内容の公開・共有
-- **コミュニティ**: 技術コミュニティでの発表
-- **キャリア**: 転職・フリーランス活動での活用
-
----
-
-## 🚀 開始方法
-
-### 前提条件
-- Python 3.11以上
-- Git
-- VS Code（推奨）
-- GitHubアカウント
-
-### セットアップ手順
-1. リポジトリのクローン
+### 開発環境での運用
 ```bash
-git clone https://github.com/syokota-cyber/study-tracker-project-.git
-cd study-tracker-project-
-```
-2. 仮想環境の作成
-3. 依存関係のインストール
-4. 開発環境の設定
+# 開発サーバー起動
+uvicorn src.api.main:app --reload --host 127.0.0.1 --port 8000
 
-詳細は [docs/setup.md](docs/setup.md) を参照してください。
+# アクセスURL
+# APIドキュメント: http://localhost:8000/docs
+# APIエンドポイント: http://localhost:8000/api/v1/
+# ヘルスチェック: http://localhost:8000/health
+```
+
+### 本番環境での運用
+```bash
+# 本番サーバー起動
+uvicorn src.api.main:app --host 0.0.0.0 --port 80
+
+# Docker化
+docker build -t study-tracker-api .
+docker run -p 80:80 study-tracker-api
+```
+
+### APIエンドポイント
+- **GET /api/v1/study-records** - 学習記録一覧取得
+- **POST /api/v1/study-records** - 学習記録作成
+- **GET /api/v1/study-records/{id}** - 学習記録詳細取得
+- **PUT /api/v1/study-records/{id}** - 学習記録更新
+- **DELETE /api/v1/study-records/{id}** - 学習記録削除
+- **GET /api/v1/study-records/stats/summary** - 統計情報取得
 
 ---
 
-## 📊 進捗状況
+## 🧪 テスト
 
-### Phase 1 進捗
-- [ ] Day 1: プロジェクト初期化
-- [ ] Day 2: データモデル設計
-- [ ] Day 3: CLI基本機能
-- [ ] Day 4: データベース実装
-- [ ] Day 5: Git Flow実践
-- [ ] Day 6: テスト実装
-- [ ] Day 7: CI/CD基盤構築
-- [ ] Day 8: Webフレームワーク導入
-- [ ] Day 9: フロントエンド基盤
-- [ ] Day 10: UI/UX実装
-- [ ] Day 11: 機能統合
-- [ ] Day 12: 高度な機能
-- [ ] Day 13: データ可視化
-- [ ] Day 14: 最終統合・デプロイ準備
+### テストの実行
+```bash
+# 全テストを実行
+python -m pytest
+
+# CLIテストのみ実行
+python -m pytest tests/test_cli.py
+
+# カバレッジ付きでテスト
+python -m pytest --cov=src --cov-report=html
+```
+
+### テストカバレッジ
+- **目標**: 80%以上
+- **現在**: 52%（CLI機能）
+- **次回目標**: FastAPI機能のテスト追加
 
 ---
 
-## 🤝 貢献方法
+## 📊 現在の進捗
 
-### 開発フロー
-1. 機能ブランチの作成
-2. 機能の実装
-3. テストの作成・実行
-4. プルリクエストの作成
-5. コードレビュー
-6. マージ
+### Phase 1 Day 3 完了（2025年7月26日）
+- ✅ **CLI機能**: 完全実装（7コマンド、14テスト）
+- ✅ **検索・フィルタリング**: 6種類のフィルタリング機能
+- ✅ **データエクスポート**: CSV、JSON、TXT形式対応
+- ✅ **FastAPI**: 基本実装完了
+- ✅ **Swagger UI**: APIドキュメント自動生成
+- ✅ **テスト**: 14個のテストケース（すべて成功）
 
-### コミットメッセージ規約
-```
-feat: 新機能の追加
-fix: バグ修正
-docs: ドキュメントの更新
-style: コードスタイルの修正
-refactor: リファクタリング
-test: テストの追加・修正
-chore: その他の変更
-```
+### 次のステップ
+- **Day 4**: FastAPI基本機能の拡張
+- **Day 5**: APIエンドポイントの実装
+- **Day 6**: APIテストの実装
+
+---
+
+## 🤝 開発者向け情報
+
+### 開発ルール
+1. **Git Flowワークフロー**: feature/bugfix/hotfix/releaseブランチを使用
+2. **コミットメッセージ**: Conventional Commits形式（feat:, fix:, docs:, etc.）
+3. **テスト駆動開発**: 新機能実装前にテストを作成
+4. **コード品質**: Black（フォーマット）、Flake8（リンター）を使用
+5. **ドキュメント**: 重要な変更はドキュメントを更新
+6. **API開発**: FastAPI + Swagger UIで自動ドキュメント生成
+
+### 品質基準
+- テストカバレッジ: 80%以上
+- コードフォーマット: Black準拠
+- リンター: Flake8合格
+- ドキュメント: 適切な更新
+- コミット: 意味のあるメッセージ
+- API仕様: Swagger UIで自動生成・最新維持
+
+---
+
+## 📝 ライセンス
+
+このプロジェクトは学習目的で作成されています。
 
 ---
 
 ## 📞 サポート
 
-### 学習サポート
-- **技術的な質問**: [GitHub Issues](https://github.com/syokota-cyber/study-tracker-project-/issues)
-- **学習ログ**: [logs/](logs/) ディレクトリ
-- **進捗確認**: [logs/progress-tracker.md](logs/progress-tracker.md)
-- **リポジトリ**: [GitHub Repository](https://github.com/syokota-cyber/study-tracker-project-.git)
-
-### 参考資料
-- [Git公式ドキュメント](https://git-scm.com/doc)
-- [FastAPI公式ドキュメント](https://fastapi.tiangolo.com/)
-- [Vue.js公式ドキュメント](https://vuejs.org/guide/)
-- [React公式ドキュメント](https://react.dev/)
+質問や問題がある場合は、GitHubのIssuesで報告してください。
 
 ---
 
-## 📄 ライセンス
+## 🔗 リポジトリ情報
 
-このプロジェクトは学習目的で作成されており、MITライセンスの下で公開されています。
-
----
-
-**StudyTracker Project - Git/GitHub学習を通じた実践的な開発経験の獲得** 🚀 
+- **GitHubリポジトリ**: https://github.com/syokota-cyber/syokota-cyber-study-tracker-project
+- **学習ログ**: [logs/daily-logs/](logs/daily-logs/)
+- **進捗追跡**: [logs/progress-tracker.md](logs/progress-tracker.md)
+- **APIドキュメント**: http://localhost:8000/docs（開発サーバー起動時） 
