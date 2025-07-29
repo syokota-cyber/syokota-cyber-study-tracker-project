@@ -6,4 +6,4 @@
 
 from .study_record import StudyRecord
 
-__all__ = ['StudyRecord']
+__all__ = ["StudyRecord"]

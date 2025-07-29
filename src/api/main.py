@@ -15,7 +15,7 @@ app = FastAPI(
     description="学習進捗管理システムのWeb API",
     version="1.0.0",
     docs_url="/docs",
-    redoc_url="/redoc"
+    redoc_url="/redoc",
 )
 
 # CORS設定（フロントエンドからのアクセスを許可）
@@ -30,6 +30,7 @@ app.add_middleware(
 # APIルーターの登録
 app.include_router(router, prefix="/api/v1")
 
+
 @app.get("/")
 async def root():
     """ルートエンドポイント"""
@@ -37,14 +38,17 @@ async def root():
         "message": "StudyTracker API",
         "version": "1.0.0",
         "docs": "/docs",
-        "api": "/api/v1"
+        "api": "/api/v1",
     }
+
 
 @app.get("/health")
 async def health_check():
     """ヘルスチェックエンドポイント"""
     return {"status": "healthy"}
 
+
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000) 
+
+    uvicorn.run(app, host="0.0.0.0", port=8000)

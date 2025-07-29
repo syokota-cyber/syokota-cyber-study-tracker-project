@@ -1,0 +1,35 @@
+# Bandit configuration file for StudyTracker project
+# This file configures security checks for the Python codebase
+
+# Exclude directories and files
+exclude_dirs: ['tests', 'venv', '.venv', '__pycache__', '.git']
+
+# Include test files (optional)
+include: ['src/**/*.py']
+
+# Severity levels to include
+# - LOW: 1
+# - MEDIUM: 2  
+# - HIGH: 3
+severity: 1
+
+# Confidence levels to include
+# - LOW: 1
+# - MEDIUM: 2
+# - HIGH: 3
+confidence: 1
+
+# Output format
+output_format: json
+
+# Output file
+output_file: bandit-report.json
+
+# Skip specific tests (by test ID)
+skips: ['B101', 'B601']  # Skip assert_used and paramiko_calls
+
+# Show skipped tests
+show_skipped: false
+
+# Verbose output
+verbose: false 

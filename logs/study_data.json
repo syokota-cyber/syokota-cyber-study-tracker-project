@@ -1,0 +1,29 @@
+[
+  {
+    "id": 5,
+    "title": "React Hooks学習",
+    "study_time_minutes": 90,
+    "study_time_hours": 1.5,
+    "category": "フロントエンド",
+    "difficulty": 3,
+    "created_at": "2025-07-26T00:21:39"
+  },
+  {
+    "id": 4,
+    "title": "Vue.js基礎学習",
+    "study_time_minutes": 120,
+    "study_time_hours": 2.0,
+    "category": "フロントエンド",
+    "difficulty": 2,
+    "created_at": "2025-07-26T00:14:29"
+  },
+  {
+    "id": 3,
+    "title": "Python FastAPI学習",
+    "study_time_minutes": 90,
+    "study_time_hours": 1.5,
+    "category": "プログラミング",
+    "difficulty": 1,
+    "created_at": "2025-07-25T23:14:24"
+  }
+]
