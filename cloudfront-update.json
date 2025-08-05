@@ -1,0 +1,179 @@
+{
+    "CallerReference": "11920c29-b311-472f-a75f-ce99c739b4ad",
+    "Aliases": {
+        "Quantity": 1,
+        "Items": [
+            "learninggarden.studio"
+        ]
+    },
+    "DefaultRootObject": "index.html",
+    "Origins": {
+        "Quantity": 2,
+        "Items": [
+            {
+                "Id": "study-tracker-frontend",
+                "DomainName": "study-tracker-2025-1754182796.s3.ap-northeast-1.amazonaws.com",
+                "OriginPath": "",
+                "CustomHeaders": {
+                    "Quantity": 0
+                },
+                "S3OriginConfig": {
+                    "OriginAccessIdentity": ""
+                },
+                "ConnectionAttempts": 3,
+                "ConnectionTimeout": 10,
+                "OriginShield": {
+                    "Enabled": false
+                },
+                "OriginAccessControlId": "E3DAD1BJLZB39Z"
+            },
+            {
+                "Id": "study-tracker-api",
+                "DomainName": "o1kb9ujxjf.execute-api.ap-northeast-1.amazonaws.com",
+                "OriginPath": "",
+                "CustomHeaders": {
+                    "Quantity": 0
+                },
+                "CustomOriginConfig": {
+                    "HTTPPort": 80,
+                    "HTTPSPort": 443,
+                    "OriginProtocolPolicy": "https-only",
+                    "OriginSslProtocols": {
+                        "Quantity": 1,
+                        "Items": [
+                            "TLSv1.2"
+                        ]
+                    },
+                    "OriginReadTimeout": 30,
+                    "OriginKeepaliveTimeout": 5
+                },
+                "ConnectionAttempts": 3,
+                "ConnectionTimeout": 10,
+                "OriginShield": {
+                    "Enabled": false
+                }
+            }
+        ]
+    },
+    "OriginGroups": {
+        "Quantity": 0
+    },
+    "DefaultCacheBehavior": {
+        "TargetOriginId": "study-tracker-frontend",
+        "TrustedSigners": {
+            "Enabled": false,
+            "Quantity": 0
+        },
+        "TrustedKeyGroups": {
+            "Enabled": false,
+            "Quantity": 0
+        },
+        "ViewerProtocolPolicy": "redirect-to-https",
+        "AllowedMethods": {
+            "Quantity": 2,
+            "Items": [
+                "HEAD",
+                "GET"
+            ],
+            "CachedMethods": {
+                "Quantity": 2,
+                "Items": [
+                    "HEAD",
+                    "GET"
+                ]
+            }
+        },
+        "SmoothStreaming": false,
+        "Compress": true,
+        "LambdaFunctionAssociations": {
+            "Quantity": 0
+        },
+        "FunctionAssociations": {
+            "Quantity": 0
+        },
+        "FieldLevelEncryptionId": "",
+        "CachePolicyId": "658327ea-f89d-4fab-a63d-7e88639e58f6",
+        "GrpcConfig": {
+            "Enabled": false
+        }
+    },
+    "CacheBehaviors": {
+        "Quantity": 1,
+        "Items": [
+            {
+                "PathPattern": "/api/*",
+                "TargetOriginId": "study-tracker-api",
+                "TrustedSigners": {
+                    "Enabled": false,
+                    "Quantity": 0
+                },
+                "TrustedKeyGroups": {
+                    "Enabled": false,
+                    "Quantity": 0
+                },
+                "ViewerProtocolPolicy": "https-only",
+                "AllowedMethods": {
+                    "Quantity": 7,
+                    "Items": [
+                        "HEAD",
+                        "GET",
+                        "POST",
+                        "PUT",
+                        "DELETE",
+                        "OPTIONS",
+                        "PATCH"
+                    ],
+                    "CachedMethods": {
+                        "Quantity": 2,
+                        "Items": [
+                            "HEAD",
+                            "GET"
+                        ]
+                    }
+                },
+                "SmoothStreaming": false,
+                "Compress": true,
+                "LambdaFunctionAssociations": {
+                    "Quantity": 0
+                },
+                "FunctionAssociations": {
+                    "Quantity": 0
+                },
+                "FieldLevelEncryptionId": "",
+                "CachePolicyId": "4135ea2d-6df8-44a3-9df3-4b5a84be39ad",
+                "GrpcConfig": {
+                    "Enabled": false
+                }
+            }
+        ]
+    },
+    "CustomErrorResponses": {
+        "Quantity": 0
+    },
+    "Comment": "StudyTracker CDN setup with API Gateway",
+    "Logging": {
+        "Enabled": false,
+        "IncludeCookies": false,
+        "Bucket": "",
+        "Prefix": ""
+    },
+    "PriceClass": "PriceClass_All",
+    "Enabled": true,
+    "ViewerCertificate": {
+        "CloudFrontDefaultCertificate": false,
+        "ACMCertificateArn": "arn:aws:acm:us-east-1:572163715344:certificate/your-certificate-arn",
+        "SSLSupportMethod": "sni-only",
+        "MinimumProtocolVersion": "TLSv1.2_2021",
+        "Certificate": "arn:aws:acm:us-east-1:572163715344:certificate/your-certificate-arn",
+        "CertificateSource": "acm"
+    },
+    "Restrictions": {
+        "GeoRestriction": {
+            "RestrictionType": "none",
+            "Quantity": 0
+        }
+    },
+    "WebACLId": "",
+    "HttpVersion": "http2",
+    "IsIPV6Enabled": true
+} 

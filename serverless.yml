@@ -1,0 +1,103 @@
+service: study-tracker-api
+
+provider:
+  name: aws
+  runtime: python3.11
+  region: ap-northeast-1
+  stage: ${opt:stage, 'dev'}
+  memorySize: 256  # コスト最適化
+  timeout: 15      # コスト最適化
+  environment:
+    STAGE: ${self:provider.stage}
+    DYNAMODB_TABLE: study-records  # 既存テーブル名に変更
+    CORS_ORIGIN: https://learninggarden.studio
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - logs:CreateLogGroup
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+          Resource: "arn:aws:logs:*:*:*"
+        - Effect: Allow
+          Action:
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+            - dynamodb:Query
+            - dynamodb:Scan
+          Resource: "arn:aws:dynamodb:${self:provider.region}:*:table/study-records"
+
+functions:
+  api:
+    handler: package.lambda_handler.handler
+    events:
+      - http:
+          path: /{proxy+}
+          method: ANY
+          cors: true
+    environment:
+      PYTHONPATH: /var/task
+    package:
+      include:
+        - package/**
+      exclude:
+        - node_modules/**
+        - venv/**
+        - tests/**
+        - docs/**
+        - logs/**
+        - "*.md"
+
+plugins:
+  - serverless-python-requirements
+
+resources:
+  Resources:
+    # 既存のstudy-recordsテーブルを使用するため、新規作成は不要
+    # StudyTrackerRecordsTable:
+    #   Type: AWS::DynamoDB::Table
+    #   Properties:
+    #     TableName: study-records
+    #     BillingMode: PAY_PER_REQUEST
+    #     AttributeDefinitions:
+    #       - AttributeName: id
+    #         AttributeType: S
+    #     KeySchema:
+    #       - AttributeName: id
+    #         KeyType: HASH
+
+custom:
+  pythonRequirements:
+    dockerizePip: non-linux
+    requirementsFile: requirements-lambda.txt
+    layer:
+      name: python-deps
+      description: Python dependencies for study-tracker-api
+    noDeploy:
+      - coverage
+      - pytest
+      - black
+      - flake8
+      - isort
+      - bandit
+      - safety
+      - mkdocs
+      - mkdocs-material
+
+package:
+  patterns:
+    - '!node_modules/**'
+    - '!venv/**'
+    - '!__pycache__/**'
+    - '!.pytest_cache/**'
+    - '!tests/**'
+    - '!docs/**'
+    - '!logs/**'
+    - '!*.md'
+    - '!.git/**'
+    - '!.github/**'
+    - '!scripts/**'
+    - '!study-tracker-frontend/**' 

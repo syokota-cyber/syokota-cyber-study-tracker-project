@@ -276,6 +276,21 @@ python -m pytest --cov=src --cov-report=html
 
 ---
 
+## 📚 ドキュメント
+
+### 基本ドキュメント
+- [セットアップガイド](docs/setup.md)
+- [プロジェクト仕様書](requirements/specification.md)
+- [要件定義書](requirements/requirements.md)
+
+### AWS移行関連ドキュメント
+- [AWS移行要件定義書](requirements/migration-requirements.md)
+- [AWS移行技術仕様書](requirements/migration-specification.md)
+- [AWS移行手順書](docs/migration-procedure.md)
+- [AWS移行計画・運用コスト分析](docs/aws-migration-plan.md)
+- [AWS資産管理・コスト監視インベントリ](docs/aws-assets-inventory.md)
+- [AWS Lambda デプロイメントガイド](docs/aws-deployment.md)
+
 ## 🔗 リポジトリ情報
 
 - **GitHubリポジトリ**: https://github.com/syokota-cyber/syokota-cyber-study-tracker-project

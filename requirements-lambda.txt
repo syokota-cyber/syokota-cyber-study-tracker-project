@@ -1,0 +1,11 @@
+# Lambda用依存関係（段階的復旧版）
+# 基本機能
+boto3>=1.34.0
+
+# DynamoDB対応（優先）
+dynamodb-encryption-sdk>=3.3.0
+
+# 将来的なFastAPI統合の準備
+# fastapi>=0.104.0
+# mangum>=0.17.0
+# pydantic>=2.5.0 

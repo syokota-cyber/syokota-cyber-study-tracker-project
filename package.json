@@ -1,0 +1,27 @@
+{
+  "name": "study-tracker-api",
+  "version": "1.0.0",
+  "description": "StudyTracker API - AWS Lambda deployment",
+  "main": "index.js",
+  "scripts": {
+    "deploy": "serverless deploy",
+    "deploy:prod": "serverless deploy --stage prod",
+    "remove": "serverless remove",
+    "logs": "serverless logs -f api",
+    "offline": "serverless offline start",
+    "test:local": "serverless invoke local -f api --path test-event.json"
+  },
+  "devDependencies": {
+    "serverless": "^3.38.0",
+    "serverless-python-requirements": "^6.0.0",
+    "serverless-offline": "^13.3.0"
+  },
+  "keywords": [
+    "fastapi",
+    "aws-lambda",
+    "serverless",
+    "python"
+  ],
+  "author": "StudyTracker Team",
+  "license": "MIT"
+} 
