@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StudyTracker 認証テスト</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 16px;
+        }
+        .button:hover {
+            background-color: #0056b3;
+        }
+        .button.success {
+            background-color: #28a745;
+        }
+        .button.danger {
+            background-color: #dc3545;
+        }
+        .result {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 5px;
+            background-color: #f8f9fa;
+            border-left: 4px solid #007bff;
+        }
+        .result.error {
+            background-color: #f8d7da;
+            border-left-color: #dc3545;
+        }
+        .result.success {
+            background-color: #d4edda;
+            border-left-color: #28a745;
+        }
+        pre {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 StudyTracker 認証テスト</h1>
+        <p>このページで認証機能をテストできます。</p>
+        
+        <div>
+            <button class="button" onclick="testLogin()">🔑 テストログイン</button>
+            <button class="button" onclick="testGetRecords()">📚 学習記録取得</button>
+            <button class="button danger" onclick="clearToken()">🗑️ トークン削除</button>
+            <button class="button" onclick="checkToken()">🔍 トークン確認</button>
+        </div>
+        
+        <div id="result"></div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'https://learninggarden.studio/api/v1';
+        
+        function showResult(message, type = 'info') {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = `<div class="result ${type}">${message}</div>`;
+        }
+        
+        function saveToken(token) {
+            localStorage.setItem('auth_token', token);
+        }
+        
+        function getToken() {
+            return localStorage.getItem('auth_token');
+        }
+        
+        function clearToken() {
+            localStorage.removeItem('auth_token');
+            showResult('トークンを削除しました', 'success');
+        }
+        
+        function checkToken() {
+            const token = getToken();
+            if (token) {
+                showResult(`トークンが存在します: ${token.substring(0, 50)}...`, 'success');
+            } else {
+                showResult('トークンが存在しません', 'error');
+            }
+        }
+        
+        async function testLogin() {
+            try {
+                showResult('テストログインを実行中...', 'info');
+                
+                const response = await fetch(`${API_BASE_URL}/auth/test-login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                saveToken(data.access_token);
+                
+                showResult(`
+                    <h3>✅ テストログイン成功</h3>
+                    <p><strong>ユーザーID:</strong> ${data.user_id}</p>
+                    <p><strong>トークンタイプ:</strong> ${data.token_type}</p>
+                    <p><strong>メッセージ:</strong> ${data.message}</p>
+                    <p><strong>トークン:</strong> ${data.access_token.substring(0, 50)}...</p>
+                `, 'success');
+                
+            } catch (error) {
+                showResult(`
+                    <h3>❌ テストログイン失敗</h3>
+                    <p><strong>エラー:</strong> ${error.message}</p>
+                `, 'error');
+            }
+        }
+        
+        async function testGetRecords() {
+            try {
+                const token = getToken();
+                if (!token) {
+                    showResult('トークンがありません。まずテストログインを実行してください。', 'error');
+                    return;
+                }
+                
+                showResult('学習記録を取得中...', 'info');
+                
+                const response = await fetch(`${API_BASE_URL}/study-records`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                    },
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                showResult(`
+                    <h3>✅ 学習記録取得成功</h3>
+                    <p><strong>記録数:</strong> ${data.count}</p>
+                    <p><strong>記録:</strong></p>
+                    <pre>${JSON.stringify(data.records, null, 2)}</pre>
+                `, 'success');
+                
+            } catch (error) {
+                showResult(`
+                    <h3>❌ 学習記録取得失敗</h3>
+                    <p><strong>エラー:</strong> ${error.message}</p>
+                `, 'error');
+            }
+        }
+        
+        // ページ読み込み時にトークン確認
+        window.onload = function() {
+            checkToken();
+        };
+    </script>
+</body>
+</html>

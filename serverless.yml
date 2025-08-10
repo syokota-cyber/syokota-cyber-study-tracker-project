@@ -32,12 +32,12 @@ provider:
 
 functions:
   api:
-    handler: package.lambda_handler.handler
+    handler: package.lambda_handler_secure.handler
     events:
       - http:
           path: /{proxy+}
           method: ANY
-          cors: true
+          cors: false
     environment:
       PYTHONPATH: /var/task
     package:

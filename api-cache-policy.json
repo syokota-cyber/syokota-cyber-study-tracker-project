@@ -1,0 +1,31 @@
+{
+    "Name": "StudyTracker-API-Cache-Policy",
+    "Comment": "Custom cache policy for StudyTracker API with Authorization header forwarding",
+    "DefaultTTL": 0,
+    "MaxTTL": 0,
+    "MinTTL": 0,
+    "ParametersInCacheKeyAndForwardedToOrigin": {
+        "EnableAcceptEncodingGzip": true,
+        "EnableAcceptEncodingBrotli": false,
+        "HeadersConfig": {
+            "HeaderBehavior": "whitelist",
+            "Headers": {
+                "Quantity": 6,
+                "Items": [
+                    "Authorization",
+                    "Content-Type",
+                    "Accept",
+                    "User-Agent",
+                    "X-Requested-With",
+                    "Origin"
+                ]
+            }
+        },
+        "QueryStringsConfig": {
+            "QueryStringBehavior": "none"
+        },
+        "CookiesConfig": {
+            "CookieBehavior": "none"
+        }
+    }
+}

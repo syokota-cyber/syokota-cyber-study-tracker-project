@@ -1,0 +1,10 @@
+{
+  "id": {"S": "user_001"},
+  "email": {"S": "test@example.com"},
+  "username": {"S": "testuser"},
+  "hashed_password": {"S": "$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj3bp.gS8s6O"},
+  "role": {"S": "user"},
+  "is_active": {"BOOL": true},
+  "created_at": {"S": "2025-08-08T14:46:43.069000+09:00"},
+  "updated_at": {"S": "2025-08-08T14:46:43.069000+09:00"}
+}

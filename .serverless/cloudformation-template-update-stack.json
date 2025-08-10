@@ -183,7 +183,7 @@
           "S3Bucket": {
             "Ref": "ServerlessDeploymentBucket"
           },
-          "S3Key": "serverless/study-tracker-api/dev/1754352127484-2025-08-05T00:02:07.484Z/pythonRequirements.zip"
+          "S3Key": "serverless/study-tracker-api/dev/1754733129823-2025-08-09T09:52:09.823Z/pythonRequirements.zip"
         },
         "LayerName": "python-deps",
         "Description": "Python dependencies for study-tracker-api",
@@ -199,9 +199,9 @@
           "S3Bucket": {
             "Ref": "ServerlessDeploymentBucket"
           },
-          "S3Key": "serverless/study-tracker-api/dev/1754355219418-2025-08-05T00:53:39.418Z/study-tracker-api.zip"
+          "S3Key": "serverless/study-tracker-api/dev/1754787135126-2025-08-10T00:52:15.126Z/study-tracker-api.zip"
         },
-        "Handler": "package.lambda_handler.handler",
+        "Handler": "package.lambda_handler_secure.handler",
         "Runtime": "python3.11",
         "FunctionName": "study-tracker-api-dev-api",
         "MemorySize": 256,
@@ -225,14 +225,14 @@
         "ApiLogGroup"
       ]
     },
-    "ApiLambdaVersionCfBvISJFT6UbI36zRX3Cqd63YkziHU4WqCw27qwpj4": {
+    "ApiLambdaVersionhck7KaXzOk7wf8HbuoJPskADcxMVAOluZYodEIBQGc": {
       "Type": "AWS::Lambda::Version",
       "DeletionPolicy": "Retain",
       "Properties": {
         "FunctionName": {
           "Ref": "ApiLambdaFunction"
         },
-        "CodeSha256": "u+j5JZQxm1aIfBz0qmU3vSHXHRucURphtLTk0eEq3zc="
+        "CodeSha256": "51Gi/vEne2/pst2S36EgZg5/ohxHbV23vPf8lq2QNi4="
       }
     },
     "ApiGatewayRestApi": {
@@ -257,51 +257,6 @@
           ]
         },
         "PathPart": "{proxy+}",
-        "RestApiId": {
-          "Ref": "ApiGatewayRestApi"
-        }
-      }
-    },
-    "ApiGatewayMethodProxyVarOptions": {
-      "Type": "AWS::ApiGateway::Method",
-      "Properties": {
-        "AuthorizationType": "NONE",
-        "HttpMethod": "OPTIONS",
-        "MethodResponses": [
-          {
-            "StatusCode": "200",
-            "ResponseParameters": {
-              "method.response.header.Access-Control-Allow-Origin": true,
-              "method.response.header.Access-Control-Allow-Headers": true,
-              "method.response.header.Access-Control-Allow-Methods": true
-            },
-            "ResponseModels": {}
-          }
-        ],
-        "RequestParameters": {},
-        "Integration": {
-          "Type": "MOCK",
-          "RequestTemplates": {
-            "application/json": "{statusCode:200}"
-          },
-          "ContentHandling": "CONVERT_TO_TEXT",
-          "IntegrationResponses": [
-            {
-              "StatusCode": "200",
-              "ResponseParameters": {
-                "method.response.header.Access-Control-Allow-Origin": "'*'",
-                "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent,X-Amzn-Trace-Id'",
-                "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,DELETE,GET,HEAD,PATCH,POST,PUT'"
-              },
-              "ResponseTemplates": {
-                "application/json": ""
-              }
-            }
-          ]
-        },
-        "ResourceId": {
-          "Ref": "ApiGatewayResourceProxyVar"
-        },
         "RestApiId": {
           "Ref": "ApiGatewayRestApi"
         }
@@ -353,7 +308,7 @@
         "ApiLambdaPermissionApiGateway"
       ]
     },
-    "ApiGatewayDeployment1754355215644": {
+    "ApiGatewayDeployment1754787131812": {
       "Type": "AWS::ApiGateway::Deployment",
       "Properties": {
         "RestApiId": {
@@ -362,7 +317,6 @@
         "StageName": "dev"
       },
       "DependsOn": [
-        "ApiGatewayMethodProxyVarOptions",
         "ApiGatewayMethodProxyVarAny"
       ]
     },
@@ -424,14 +378,14 @@
     },
     "PythonRequirementsLambdaLayerHash": {
       "Description": "Current Lambda layer hash",
-      "Value": "99f5a9a58878c93167c944fc1a25a9486bd88706",
+      "Value": "53de224f9c3aa748e3f106735900229865f72d58",
       "Export": {
         "Name": "sls-study-tracker-api-dev-PythonRequirementsLambdaLayerHash"
       }
     },
     "PythonRequirementsLambdaLayerS3Key": {
       "Description": "Current Lambda layer S3Key",
-      "Value": "serverless/study-tracker-api/dev/1754352127484-2025-08-05T00:02:07.484Z/pythonRequirements.zip",
+      "Value": "serverless/study-tracker-api/dev/1754733129823-2025-08-09T09:52:09.823Z/pythonRequirements.zip",
       "Export": {
         "Name": "sls-study-tracker-api-dev-PythonRequirementsLambdaLayerS3Key"
       }
@@ -439,7 +393,7 @@
     "ApiLambdaFunctionQualifiedArn": {
       "Description": "Current Lambda function version",
       "Value": {
-        "Ref": "ApiLambdaVersionCfBvISJFT6UbI36zRX3Cqd63YkziHU4WqCw27qwpj4"
+        "Ref": "ApiLambdaVersionhck7KaXzOk7wf8HbuoJPskADcxMVAOluZYodEIBQGc"
       },
       "Export": {
         "Name": "sls-study-tracker-api-dev-ApiLambdaFunctionQualifiedArn"

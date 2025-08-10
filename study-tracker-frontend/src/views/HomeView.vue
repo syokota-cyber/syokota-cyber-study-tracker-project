@@ -1,8 +1,13 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 import StudyRecordList from '@/components/StudyRecordList.vue'
 import StudyRecordForm from '@/components/StudyRecordForm.vue'
 import type { StudyRecord } from '@/services/api'
+
+const router = useRouter()
+const authStore = useAuthStore()
 
 // リアクティブな状態
 const showCreateForm = ref(false)
@@ -42,10 +47,11 @@ const startEdit = (record: StudyRecord) => {
   showEditForm.value = true
 }
 
-// グローバルに編集関数を公開（StudyRecordListから呼び出し用）
-defineExpose({
-  startEdit
-})
+// ログアウト処理
+const handleLogout = () => {
+  authStore.logout()
+  router.push('/login')
+}
 </script>
 
 <template>
@@ -53,8 +59,20 @@ defineExpose({
     <div class="container">
       <!-- ヘッダー -->
       <header class="app-header">
-        <h1 class="app-title">📚 StudyTracker</h1>
-        <p class="app-subtitle">学習進捗管理システム</p>
+        <div class="header-content">
+          <div class="header-left">
+            <h1 class="app-title">📚 StudyTracker</h1>
+            <p class="app-subtitle">学習進捗管理システム</p>
+          </div>
+          <div class="header-right">
+            <div class="user-info">
+              <span class="user-name">{{ authStore.currentUser?.full_name || 'ユーザー' }}</span>
+              <button @click="handleLogout" class="logout-btn" title="ログアウト">
+                🚪 ログアウト
+              </button>
+            </div>
+          </div>
+        </div>
       </header>
 
       <!-- メインコンテンツ -->
@@ -64,6 +82,7 @@ defineExpose({
           <StudyRecordList 
             ref="recordListRef"
             @record-saved="handleRecordSaved"
+            @edit-record="startEdit"
           />
         </div>
 
@@ -106,9 +125,56 @@ defineExpose({
 }
 
 .app-header {
-  text-align: center;
   margin-bottom: 40px;
   color: white;
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.header-left {
+  text-align: left;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background-color: rgba(255, 255, 255, 0.1);
+  padding: 12px 20px;
+  border-radius: 8px;
+  backdrop-filter: blur(10px);
+}
+
+.user-name {
+  font-weight: 500;
+  font-size: 16px;
+}
+
+.logout-btn {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.logout-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateY(-1px);
 }
 
 .app-title {

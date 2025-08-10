@@ -712,17 +712,21 @@ def log_security_event(event_type: str, details: Dict[str, Any]):
 
 ### 次のセキュリティ実装予定
 
-#### Phase 2: 認証・認可（1ヶ月後）
+#### Phase 2: 認証・認可 ✅ **実装完了**
 ```python
-# JWT認証実装予定
-from fastapi.security import HTTPBearer
+# JWT認証実装完了
+from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
+from passlib.context import CryptContext
 
-security = HTTPBearer()
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
-async def get_current_user(token: str = Depends(security)):
+async def get_current_user(token: str = Depends(oauth2_scheme)):
     # JWTトークンの検証
-    pass
+    payload = verify_token(token)
+    if payload is None:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    return {"user_id": payload.get("sub")}
 ```
 
 #### Phase 3: 高度セキュリティ（3ヶ月後）
@@ -741,4 +745,4 @@ async def get_current_user(token: str = Depends(security)):
 ---
 
 **文書バージョン**: v2.0  
-**最終更新日**: 2025年8月5日 
+**最終更新日**: 2025年8月7日 

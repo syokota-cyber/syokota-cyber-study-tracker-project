@@ -72,6 +72,8 @@
       @edit="handleEdit"
     />
 
+
+
     <!-- エラーメッセージ -->
     <div v-if="error" class="error-message">
       <p>エラーが発生しました: {{ error }}</p>
@@ -126,18 +128,10 @@
                   <span class="category-badge">{{ record.category }}</span>
                 </td>
                 <td class="difficulty-cell">
-                  <div class="difficulty-stars">
-                    <span 
-                      v-for="i in 5" 
-                      :key="i" 
-                      :class="['star', i <= record.difficulty ? 'filled' : 'empty']"
-                    >
-                      ★
-                    </span>
-                  </div>
+                  <span class="difficulty-level">{{ getDifficultyText(record.difficulty) }}</span>
                 </td>
                 <td class="time-cell">{{ formatStudyTime(record.study_time) }}</td>
-                <td class="date-cell">{{ formatDate(record.created_at) }}</td>
+                <td class="date-cell">{{ formatSimpleDate(record.created_at) }}</td>
                 <td class="actions-cell">
                   <button 
                     @click="viewRecord(record)" 
@@ -196,19 +190,30 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, getCurrentInstance } from 'vue'
-import { apiService, type StudyRecord } from '@/services/api'
+import { ref, onMounted, computed, watch } from 'vue'
+import { apiService } from '@/services/api'
+import { authService } from '@/services/auth'
+import { useAuthStore } from '@/stores/auth'
+import type { StudyRecord } from '@/services/api'
 import StudyRecordModal from './StudyRecordModal.vue'
 
-// リアクティブな状態
+// イベント定義
+const emit = defineEmits<{
+  'record-saved': [record: StudyRecord]
+  'edit-record': [record: StudyRecord]
+}>()
+
+// 基本状態
 const records = ref<StudyRecord[]>([])
 const loading = ref(false)
 const error = ref<string | null>(null)
 const currentPage = ref(1)
-const totalPages = ref(1)
-const totalRecords = ref(0)
 const limit = 10
+const totalRecords = ref(0)
+const totalPages = ref(0)
 const selectedRecords = ref<number[]>([])
+
+
 
 // モーダル関連の状態
 const showModal = ref(false)
@@ -220,9 +225,19 @@ const categoryFilter = ref('')
 const difficultyFilter = ref('')
 const filteredRecords = ref<StudyRecord[]>([])
 
+
+
 // 学習記録一覧を取得
 const loadRecords = async () => {
   console.log('loadRecords が呼び出されました')
+  
+  // 認証チェック（認証ストアを使用）
+  const authStore = useAuthStore()
+  if (!authStore.isAuthenticated) {
+    error.value = '認証が必要です。ログインしてください。'
+    return
+  }
+  
   loading.value = true
   error.value = null
   
@@ -239,6 +254,12 @@ const loadRecords = async () => {
   } catch (err) {
     error.value = err instanceof Error ? err.message : '不明なエラーが発生しました'
     console.error('学習記録取得エラー:', err)
+    
+    // 401エラーの場合はログイン画面にリダイレクト
+    if (err instanceof Error && err.message.includes('401')) {
+      console.log('401エラーが発生しました。ログインが必要です。')
+      error.value = '認証が必要です。ログインしてください。'
+    }
   } finally {
     loading.value = false
   }
@@ -378,19 +399,8 @@ const applyFilters = () => {
 const editRecord = (record: StudyRecord) => {
   console.log('編集ボタンがクリックされました:', record)
   
-  // 親コンポーネントの編集関数を呼び出し
-  const parent = getCurrentInstance()?.parent
-  console.log('親コンポーネント:', parent)
-  console.log('親コンポーネントのexposed:', parent?.exposed)
-  
-  if (parent && parent.exposed?.startEdit) {
-    console.log('startEdit関数を呼び出します')
-    parent.exposed.startEdit(record)
-  } else {
-    console.log('startEdit関数が見つかりません')
-    // フォールバック: アラートで編集情報を表示
-    alert(`編集機能の準備中です。\n\n編集したい記録:\nタイトル: ${record.title}\nカテゴリ: ${record.category}`)
-  }
+  // 親コンポーネントに編集イベントを送信
+  emit('edit-record', record)
 }
 
 // 学習時間のフォーマット
@@ -404,7 +414,13 @@ const formatStudyTime = (minutes: number): string => {
   return `${mins}分`
 }
 
-// 日付のフォーマット
+// 難易度をテキストで表示
+const getDifficultyText = (difficulty: number): string => {
+  const levels = ['初級', '初級+', '中級', '中級+', '上級']
+  return levels[difficulty - 1] || '未設定'
+}
+
+// 日付のフォーマット（詳細版）
 const formatDate = (dateString: string): string => {
   const date = new Date(dateString)
   return date.toLocaleDateString('ja-JP', {
@@ -414,6 +430,30 @@ const formatDate = (dateString: string): string => {
     hour: '2-digit',
     minute: '2-digit'
   })
+}
+
+// 日付のフォーマット（簡略版）
+const formatSimpleDate = (dateString: string): string => {
+  const date = new Date(dateString)
+  const today = new Date()
+  const yesterday = new Date(today)
+  yesterday.setDate(yesterday.getDate() - 1)
+  
+  // 今日の場合
+  if (date.toDateString() === today.toDateString()) {
+    return '今日'
+  }
+  // 昨日の場合
+  else if (date.toDateString() === yesterday.toDateString()) {
+    return '昨日'
+  }
+  // それ以外は日付のみ
+  else {
+    return date.toLocaleDateString('ja-JP', {
+      month: '2-digit',
+      day: '2-digit'
+    })
+  }
 }
 
 // コンポーネントマウント時にデータを読み込み
@@ -634,9 +674,34 @@ defineExpose({
   cursor: pointer;
 }
 
+.records-table th:nth-child(2) { /* タイトル */
+  width: 25%;
+}
+
+.records-table th:nth-child(3) { /* カテゴリ */
+  width: 12%;
+}
+
+.records-table th:nth-child(4) { /* 難易度 */
+  width: 10%;
+}
+
+.records-table th:nth-child(5) { /* 学習時間 */
+  width: 12%;
+}
+
+.records-table th:nth-child(6) { /* 作成日 */
+  width: 10%;
+}
+
+.records-table th:nth-child(7) { /* 操作 */
+  width: 15%;
+}
+
 .records-table td {
-  padding: 12px;
+  padding: 12px 8px;
   border-bottom: 1px solid #eee;
+  vertical-align: middle;
 }
 
 .select-cell {
@@ -660,27 +725,27 @@ defineExpose({
 .category-badge {
   background-color: #e3f2fd;
   color: #1976d2;
+  padding: 6px 12px;
+  border-radius: 16px;
+  font-size: 13px;
+  font-weight: 500;
+  display: inline-block;
+  white-space: nowrap;
+  text-align: center;
+  min-width: 60px;
+}
+
+.difficulty-level {
+  background-color: #f5f5f5;
+  color: #666;
   padding: 4px 8px;
   border-radius: 12px;
   font-size: 12px;
   font-weight: 500;
-}
-
-.difficulty-stars {
-  display: flex;
-  gap: 2px;
-}
-
-.star {
-  font-size: 14px;
-}
-
-.star.filled {
-  color: #ffc107;
-}
-
-.star.empty {
-  color: #ddd;
+  display: inline-block;
+  white-space: nowrap;
+  text-align: center;
+  min-width: 50px;
 }
 
 .time-cell {
@@ -689,8 +754,9 @@ defineExpose({
 }
 
 .date-cell {
-  color: #999;
-  font-size: 14px;
+  color: #666;
+  font-size: 13px;
+  font-weight: 500;
 }
 
 .actions-cell {
@@ -768,4 +834,6 @@ defineExpose({
   font-weight: 500;
   color: #333;
 }
+
+
 </style> 

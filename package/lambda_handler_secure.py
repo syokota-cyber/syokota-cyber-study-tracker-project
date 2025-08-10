@@ -4,10 +4,20 @@ import re
 import html
 from datetime import datetime
 from typing import Dict, Any, List, Optional
+import base64
+import hmac
+import hashlib
+import json
+from datetime import datetime, timezone, timedelta
+import os
 
 # DynamoDBクライアントの初期化
 dynamodb = boto3.resource('dynamodb')
 table = dynamodb.Table('study-records')
+
+# JWT認証設定
+SECRET_KEY = "your-secret-key-for-development-only-change-in-production"
+ALGORITHM = "HS256"
 
 def sanitize_input(text: str, max_length: int = 1000) -> str:
     """入力値のサニタイズ（XSS対策）"""
@@ -85,93 +95,300 @@ def validate_study_record(data: Dict[str, Any]) -> List[str]:
     
     return errors
 
-def handler(event, context):
-    """StudyTracker API - セキュリティ強化版（Phase 1）"""
+def verify_token(token: str) -> Optional[Dict[str, Any]]:
+    """
+    JWTトークンを検証（標準ライブラリベース）
+    
+    Args:
+        token: 検証するJWTトークン
+    
+    Returns:
+        検証成功時はペイロード、失敗時はNone
+    """
     try:
-        # パスパラメータの取得
-        path = event.get('path', '')
+        # JWTトークンの構造: header.payload.signature
+        parts = token.split('.')
+        if len(parts) != 3:
+            return None
+        
+        header_b64, payload_b64, signature_b64 = parts
+        
+        # ペイロードのデコード
+        payload_padding = payload_b64 + '=' * (4 - len(payload_b64) % 4)
+        payload_json = base64.urlsafe_b64decode(payload_padding)
+        payload = json.loads(payload_json)
+        
+        # 有効期限チェック
+        exp = payload.get('exp')
+        if exp and datetime.now(timezone.utc).timestamp() > exp:
+            return None
+        
+        # 署名検証（簡易版 - 実際の運用ではより厳密に）
+        expected_signature = hmac.new(
+            SECRET_KEY.encode('utf-8'),
+            f"{header_b64}.{payload_b64}".encode('utf-8'),
+            hashlib.sha256
+        ).digest()
+        expected_signature_b64 = base64.urlsafe_b64encode(expected_signature).decode('utf-8').rstrip('=')
+        
+        if signature_b64 != expected_signature_b64:
+            return None
+        
+        return payload
+    except Exception:
+        return None
+
+def get_current_user_from_event(event: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """
+    イベントからJWTトークンを取得し、ユーザー情報を返す
+    
+    Args:
+        event: Lambda イベント
+    
+    Returns:
+        ユーザー情報（成功時）、None（失敗時）
+    """
+    # Authorizationヘッダーからトークンを取得
+    headers = event.get('headers', {})
+    authorization = headers.get('Authorization') or headers.get('authorization')
+    
+    if not authorization:
+        return None
+    
+    # "Bearer <token>" 形式からトークンを抽出
+    parts = authorization.split()
+    if len(parts) != 2 or parts[0].lower() != 'bearer':
+        return None
+    
+    token = parts[1]
+    payload = verify_token(token)
+    
+    if payload is None:
+        return None
+    
+    user_id = payload.get("sub")
+    if not user_id:
+        return None
+    
+    return {"user_id": user_id}
+
+def create_access_token(data: dict) -> str:
+    """
+    JWTアクセストークンを生成（標準ライブラリベース）
+    
+    Args:
+        data: トークンに含めるデータ（通常はユーザーID）
+    
+    Returns:
+        生成されたJWTトークン
+    """
+    # ヘッダー
+    header = {
+        "alg": "HS256",
+        "typ": "JWT"
+    }
+    
+    # ペイロード
+    to_encode = data.copy()
+    expire = datetime.now(timezone.utc) + timedelta(minutes=30)
+    to_encode.update({"exp": expire.timestamp()})
+    
+    # Base64エンコード
+    header_b64 = base64.urlsafe_b64encode(json.dumps(header).encode('utf-8')).decode('utf-8').rstrip('=')
+    payload_b64 = base64.urlsafe_b64encode(json.dumps(to_encode).encode('utf-8')).decode('utf-8').rstrip('=')
+    
+    # 署名生成
+    message = f"{header_b64}.{payload_b64}"
+    signature = hmac.new(
+        SECRET_KEY.encode('utf-8'),
+        message.encode('utf-8'),
+        hashlib.sha256
+    ).digest()
+    signature_b64 = base64.urlsafe_b64encode(signature).decode('utf-8').rstrip('=')
+    
+    # JWTトークン生成
+    return f"{header_b64}.{payload_b64}.{signature_b64}"
+
+def create_test_login_token() -> Dict[str, Any]:
+    """
+    テスト用のログイントークンを生成
+    """
+    # テスト用ユーザーID（実際は認証フローで取得）
+    test_user_id = "test-user-12345"
+    
+    access_token = create_access_token(data={"sub": test_user_id})
+    
+    return create_response(200, {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user_id": test_user_id,
+        "message": "Test login successful"
+    })
+
+def handler(event, context):
+    """Lambda関数のメインハンドラー（セキュリティ強化版）"""
+    try:
+        # HTTPメソッドの取得
         http_method = event.get('httpMethod', 'GET')
+        path = event.get('path', '')
+        
+        # デバッグ用ログ出力
+        print(f"DEBUG: HTTP Method = {http_method}")
+        print(f"DEBUG: Path = {path}")
+        
+        # OPTIONSリクエストの処理（CORSプリフライト）
+        if http_method == 'OPTIONS':
+            return create_response(200, {})
+        
+        # パスの解析（CloudFrontのOriginPath /dev を考慮）
+        path_parts = path.strip('/').split('/')
+        print(f"DEBUG: Path parts = {path_parts}")
+        
+        # /dev/api/v1/... の形式に対応
+        if len(path_parts) >= 4 and path_parts[0] == 'dev' and path_parts[1] == 'api' and path_parts[2] == 'v1':
+            # /dev を除去して /api/v1/... の形式に変換
+            path_parts = path_parts[1:]  # dev を除去
+        elif len(path_parts) >= 3 and path_parts[0] == 'api' and path_parts[1] == 'v1':
+            # 直接 /api/v1/... の形式
+            pass
+        else:
+            return create_response(404, {'error': 'API version not found'})
+        
+        print(f"DEBUG: Adjusted path parts = {path_parts}")
+        
+        # APIバージョンチェック
+        if len(path_parts) < 3 or path_parts[0] != 'api' or path_parts[1] != 'v1':
+            return create_response(404, {'error': 'API version not found'})
+        
+        # エンドポイントの判定
+        endpoint = path_parts[2] if len(path_parts) > 2 else ''
+        print(f"DEBUG: Endpoint = {endpoint}")
+        
+        # 学習記録関連のエンドポイント
+        if endpoint == 'study-records':
+            # 🔐 認証チェック（学習記録は認証が必要）
+            current_user = get_current_user_from_event(event)
+            if not current_user:
+                return create_response(401, {
+                    'error': 'Unauthorized', 
+                    'message': 'Authentication required to access study records'
+                })
+            
+            user_id = current_user['user_id']
+            print(f"DEBUG: Authenticated user_id = {user_id}")
+            
+            # 個別レコードのID取得
+            record_id = path_parts[3] if len(path_parts) > 3 else None
+            
+            if http_method == 'GET':
+                if record_id:
+                    return get_study_record(record_id, user_id)
+                else:
+                    # クエリパラメータでページネーション判定
+                    query_params = event.get('queryStringParameters', {}) or {}
+                    if 'page' in query_params or 'limit' in query_params:
+                        return get_paginated_study_records(event, user_id)
+                    else:
+                        return get_study_records(user_id)
+            
+            elif http_method == 'POST':
+                return create_study_record(event, user_id)
+            
+            elif http_method == 'PUT':
+                if record_id:
+                    return update_study_record(record_id, event, user_id)
+                else:
+                    return create_response(400, {'error': 'Record ID required for update'})
+            
+            elif http_method == 'DELETE':
+                if record_id:
+                    return delete_study_record(record_id, user_id)
+                else:
+                    return create_response(400, {'error': 'Record ID required for deletion'})
+            
+            else:
+                return create_response(405, {'error': 'Method not allowed'})
+        
+        # 統計関連のエンドポイント
+        elif endpoint == 'stats':
+            # 🔐 認証チェック（統計情報も認証が必要）
+            current_user = get_current_user_from_event(event)
+            if not current_user:
+                return create_response(401, {
+                    'error': 'Unauthorized', 
+                    'message': 'Authentication required to access statistics'
+                })
+            
+            user_id = current_user['user_id']
+            
+            if len(path_parts) < 4:
+                return create_response(404, {'error': 'Stats endpoint not found'})
+            
+            stats_type = path_parts[3]
+            
+            if http_method == 'GET':
+                if stats_type == 'summary':
+                    return get_study_stats_summary(user_id)
+                elif stats_type == 'category':
+                    return get_category_stats(user_id)
+                elif stats_type == 'difficulty':
+                    return get_difficulty_stats(user_id)
+                else:
+                    return create_response(404, {'error': 'Stats type not found'})
+            else:
+                return create_response(405, {'error': 'Method not allowed'})
+        
+        # 認証関連のエンドポイント（テスト用簡易実装）
+        elif endpoint == 'auth':
+            if len(path_parts) < 4:
+                return create_response(404, {'error': 'Auth endpoint not found'})
+            
+            auth_action = path_parts[3]
+            
+            if auth_action == 'test-login' and http_method == 'POST':
+                # テスト用の簡易ログイン（実際はユーザー認証システムと統合）
+                return create_test_login_token()
+            else:
+                return create_response(404, {'error': 'Auth action not found'})
         
         # ヘルスチェックエンドポイント
-        if path == '/health' or path.endswith('/health'):
-            return create_response(200, {
-                'status': 'healthy',
-                'service': 'StudyTracker API',
-                'message': 'セキュリティ強化版（Phase 1）',
-                'database': 'DynamoDB (study-records)',
-                'version': '2.1.0',
-                'security': 'enhanced'
-            })
+        elif endpoint == 'health':
+            if http_method == 'GET':
+                return create_response(200, {
+                    'status': 'healthy',
+                    'service': 'StudyTracker API',
+                    'message': 'セキュリティ強化版（Phase 1）',
+                    'database': 'DynamoDB (study-records)',
+                    'version': '2.1.0',
+                    'security': 'enhanced'
+                })
+            else:
+                return create_response(405, {'error': 'Method not allowed'})
         
-        # 統計情報エンドポイント（個別レコード取得より前に配置）
-        elif path == '/api/v1/study-records/stats/summary' and http_method == 'GET':
-            return get_study_stats_summary()
+        # ドキュメントエンドポイント
+        elif endpoint == 'docs':
+            if http_method == 'GET':
+                return create_response(200, {
+                    'message': 'API Documentation',
+                    'endpoints': {
+                        'health': 'GET /api/v1/health',
+                        'records': 'GET /api/v1/study-records',
+                        'create': 'POST /api/v1/study-records',
+                        'update': 'PUT /api/v1/study-records/{id}',
+                        'delete': 'DELETE /api/v1/study-records/{id}',
+                        'stats': 'GET /api/v1/stats/summary'
+                    }
+                })
+            else:
+                return create_response(405, {'error': 'Method not allowed'})
         
-        elif path == '/api/v1/study-records/stats/category' and http_method == 'GET':
-            return get_category_stats()
-        
-        elif path == '/api/v1/study-records/stats/difficulty' and http_method == 'GET':
-            return get_difficulty_stats()
-        
-        # ページネーション付き学習記録一覧取得
-        elif path == '/api/v1/study-records/paginated' and http_method == 'GET':
-            return get_paginated_study_records(event)
-        
-        # 学習記録一覧取得（従来版）
-        elif path == '/api/v1/study-records' and http_method == 'GET':
-            return get_study_records()
-        
-        # 学習記録作成
-        elif path == '/api/v1/study-records' and http_method == 'POST':
-            return create_study_record(event)
-        
-        # 学習記録取得（個別）
-        elif path.startswith('/api/v1/study-records/') and http_method == 'GET':
-            record_id = path.split('/')[-1]
-            return get_study_record(record_id)
-        
-        # 学習記録更新
-        elif path.startswith('/api/v1/study-records/') and http_method == 'PUT':
-            record_id = path.split('/')[-1]
-            return update_study_record(record_id, event)
-        
-        # 学習記録削除
-        elif path.startswith('/api/v1/study-records/') and http_method == 'DELETE':
-            record_id = path.split('/')[-1]
-            return delete_study_record(record_id)
-        
-        # ルートエンドポイント
-        elif path == '/' or path == '/api/v1':
-            return create_response(200, {
-                'message': 'StudyTracker API',
-                'version': '2.1.0',
-                'status': 'ready',
-                'database': 'DynamoDB',
-                'security': 'enhanced',
-                'endpoints': {
-                    'health': '/health',
-                    'study_records': '/api/v1/study-records',
-                    'study_records_paginated': '/api/v1/study-records/paginated',
-                    'study_stats_summary': '/api/v1/study-records/stats/summary',
-                    'study_stats_category': '/api/v1/study-records/stats/category',
-                    'study_stats_difficulty': '/api/v1/study-records/stats/difficulty',
-                    'api': '/api/v1'
-                }
-            })
-        
-        # その他のエンドポイント
         else:
-            return create_response(404, {
-                'error': 'Not Found',
-                'message': 'Endpoint not found'
-            })
-            
+            return create_response(404, {'error': 'Endpoint not found'})
+    
     except Exception as e:
-        # エラーメッセージの情報漏洩を防ぐ
-        return create_response(500, {
-            'error': 'Internal server error',
-            'message': 'An unexpected error occurred'
-        })
+        # エラーログの出力（本番環境では詳細情報を隠す）
+        print(f"Error in handler: {str(e)}")
+        return create_response(500, {'error': 'Internal server error'})
 
 def create_response(status_code: int, body: Dict[str, Any]) -> Dict[str, Any]:
     """セキュリティ強化レスポンス作成"""
@@ -190,7 +407,7 @@ def create_response(status_code: int, body: Dict[str, Any]) -> Dict[str, Any]:
         'body': json.dumps(body, default=str)
     }
 
-def get_paginated_study_records(event: Dict[str, Any]) -> Dict[str, Any]:
+def get_paginated_study_records(event: Dict[str, Any], user_id: str) -> Dict[str, Any]:
     """ページネーション付き学習記録一覧取得（セキュリティ強化版）"""
     try:
         # クエリパラメータの取得と検証
@@ -212,8 +429,11 @@ def get_paginated_study_records(event: Dict[str, Any]) -> Dict[str, Any]:
         except (ValueError, TypeError):
             limit = 10
         
-        # DynamoDBから全レコード取得
-        response = table.scan()
+        # DynamoDBからユーザー別レコード取得
+        response = table.scan(
+            FilterExpression='user_id = :user_id',
+            ExpressionAttributeValues={':user_id': user_id}
+        )
         all_records = response.get('Items', [])
         
         # 日付順でソート
@@ -241,10 +461,13 @@ def get_paginated_study_records(event: Dict[str, Any]) -> Dict[str, Any]:
     except Exception as e:
         return create_response(500, {'error': 'Failed to get records'})
 
-def get_study_records() -> Dict[str, Any]:
+def get_study_records(user_id: str) -> Dict[str, Any]:
     """学習記録一覧取得（セキュリティ強化版）"""
     try:
-        response = table.scan()
+        response = table.scan(
+            FilterExpression='user_id = :user_id',
+            ExpressionAttributeValues={':user_id': user_id}
+        )
         records = response.get('Items', [])
         
         # 日付順でソート
@@ -257,7 +480,7 @@ def get_study_records() -> Dict[str, Any]:
     except Exception as e:
         return create_response(500, {'error': 'Failed to get records'})
 
-def create_study_record(event: Dict[str, Any]) -> Dict[str, Any]:
+def create_study_record(event: Dict[str, Any], user_id: str) -> Dict[str, Any]:
     """学習記録作成（セキュリティ強化版）"""
     try:
         # JSON解析のエラーハンドリング
@@ -274,9 +497,10 @@ def create_study_record(event: Dict[str, Any]) -> Dict[str, Any]:
                 'details': validation_errors
             })
         
-        # レコード作成
+        # レコード作成（user_idを追加）
         record = {
             'id': str(datetime.now().timestamp()),
+            'user_id': user_id,  # ユーザーIDを追加
             'title': body['title'],
             'content': body.get('content', ''),
             'study_time': body.get('study_time', 0),
@@ -295,7 +519,7 @@ def create_study_record(event: Dict[str, Any]) -> Dict[str, Any]:
     except Exception as e:
         return create_response(500, {'error': 'Failed to create record'})
 
-def get_study_record(record_id: str) -> Dict[str, Any]:
+def get_study_record(record_id: str, user_id: str) -> Dict[str, Any]:
     """学習記録取得（個別・セキュリティ強化版）"""
     try:
         # IDの検証
@@ -308,11 +532,15 @@ def get_study_record(record_id: str) -> Dict[str, Any]:
         if not record:
             return create_response(404, {'error': 'Record not found'})
         
+        # ユーザー権限チェック
+        if record.get('user_id') != user_id:
+            return create_response(403, {'error': 'Access denied: You can only access your own records'})
+        
         return create_response(200, {'record': record})
     except Exception as e:
         return create_response(500, {'error': 'Failed to get record'})
 
-def update_study_record(record_id: str, event: Dict[str, Any]) -> Dict[str, Any]:
+def update_study_record(record_id: str, event: Dict[str, Any], user_id: str) -> Dict[str, Any]:
     """学習記録更新（セキュリティ強化版）"""
     try:
         # IDの検証
@@ -346,6 +574,16 @@ def update_study_record(record_id: str, event: Dict[str, Any]) -> Dict[str, Any]
         if not update_expression:
             return create_response(400, {'error': 'No fields to update'})
         
+        # 権限チェック用に現在のレコードを取得
+        existing_response = table.get_item(Key={'id': record_id})
+        existing_record = existing_response.get('Item')
+        
+        if not existing_record:
+            return create_response(404, {'error': 'Record not found'})
+        
+        if existing_record.get('user_id') != user_id:
+            return create_response(403, {'error': 'Access denied: You can only update your own records'})
+        
         # 更新実行
         response = table.update_item(
             Key={'id': record_id},
@@ -362,12 +600,22 @@ def update_study_record(record_id: str, event: Dict[str, Any]) -> Dict[str, Any]
     except Exception as e:
         return create_response(500, {'error': 'Failed to update record'})
 
-def delete_study_record(record_id: str) -> Dict[str, Any]:
+def delete_study_record(record_id: str, user_id: str) -> Dict[str, Any]:
     """学習記録削除（セキュリティ強化版）"""
     try:
         # IDの検証
         if not record_id or not isinstance(record_id, str):
             return create_response(400, {'error': 'Invalid record ID'})
+        
+        # 権限チェック用に現在のレコードを取得
+        existing_response = table.get_item(Key={'id': record_id})
+        existing_record = existing_response.get('Item')
+        
+        if not existing_record:
+            return create_response(404, {'error': 'Record not found'})
+        
+        if existing_record.get('user_id') != user_id:
+            return create_response(403, {'error': 'Access denied: You can only delete your own records'})
         
         table.delete_item(Key={'id': record_id})
         
@@ -378,10 +626,13 @@ def delete_study_record(record_id: str) -> Dict[str, Any]:
     except Exception as e:
         return create_response(500, {'error': 'Failed to delete record'})
 
-def get_study_stats_summary() -> Dict[str, Any]:
+def get_study_stats_summary(user_id: str) -> Dict[str, Any]:
     """統計情報サマリー取得（セキュリティ強化版）"""
     try:
-        response = table.scan()
+        response = table.scan(
+            FilterExpression='user_id = :user_id',
+            ExpressionAttributeValues={':user_id': user_id}
+        )
         records = response.get('Items', [])
         
         if not records:
@@ -421,10 +672,13 @@ def get_study_stats_summary() -> Dict[str, Any]:
     except Exception as e:
         return create_response(500, {'error': 'Failed to get stats'})
 
-def get_category_stats() -> Dict[str, Any]:
+def get_category_stats(user_id: str) -> Dict[str, Any]:
     """カテゴリ別統計取得（セキュリティ強化版）"""
     try:
-        response = table.scan()
+        response = table.scan(
+            FilterExpression='user_id = :user_id',
+            ExpressionAttributeValues={':user_id': user_id}
+        )
         records = response.get('Items', [])
         
         # カテゴリ別統計
@@ -464,10 +718,13 @@ def get_category_stats() -> Dict[str, Any]:
     except Exception as e:
         return create_response(500, {'error': 'Failed to get category stats'})
 
-def get_difficulty_stats() -> Dict[str, Any]:
+def get_difficulty_stats(user_id: str) -> Dict[str, Any]:
     """難易度別統計取得（セキュリティ強化版）"""
     try:
-        response = table.scan()
+        response = table.scan(
+            FilterExpression='user_id = :user_id',
+            ExpressionAttributeValues={':user_id': user_id}
+        )
         records = response.get('Items', [])
         
         # 難易度別統計
