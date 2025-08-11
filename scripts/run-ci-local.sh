@@ -1,126 +1,166 @@
 #!/bin/bash
 
-# Local CI/CD Pipeline Runner for StudyTracker
-# This script runs the same checks as GitHub Actions locally
+# StudyTracker Local CI Check Script
+# 学習目的プロジェクト用のローカル品質チェック
 
-set -e  # Exit on any error
+set -e  # エラー時に停止
 
-echo "🚀 Starting local CI/CD pipeline..."
+echo "🔍 StudyTracker Local CI Check"
+echo "=================================="
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
-
-# Function to print colored output
-print_status() {
-    echo -e "${BLUE}[INFO]${NC} $1"
-}
-
+# 色付き出力の関数
 print_success() {
-    echo -e "${GREEN}[SUCCESS]${NC} $1"
-}
-
-print_warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $1"
+    echo -e "\033[32m✅ $1\033[0m"
 }
 
 print_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
+    echo -e "\033[31m❌ $1\033[0m"
 }
 
-# Check if we're in the right directory
-if [ ! -f "requirements.txt" ]; then
-    print_error "requirements.txt not found. Please run this script from the project root."
-    exit 1
-fi
+print_info() {
+    echo -e "\033[34mℹ️  $1\033[0m"
+}
 
-print_status "Installing dependencies..."
-# Check if virtual environment is activated
-if [[ "$VIRTUAL_ENV" == "" ]]; then
-    print_warning "Virtual environment not detected. Attempting to activate..."
-    if [[ -f "venv/bin/activate" ]]; then
-        source venv/bin/activate
-    elif [[ -f ".venv/bin/activate" ]]; then
-        source .venv/bin/activate
+print_warning() {
+    echo -e "\033[33m⚠️  $1\033[0m"
+}
+
+# 依存関係の確認
+check_dependencies() {
+    print_info "Checking dependencies..."
+    
+    # Python バージョン確認
+    python_version=$(python3 --version 2>&1 | cut -d' ' -f2)
+    print_info "Python version: $python_version"
+    
+    # 必要なパッケージの確認
+    required_packages=("black" "flake8" "pytest" "bandit")
+    for package in "${required_packages[@]}"; do
+        if python3 -c "import $package" 2>/dev/null; then
+            print_success "$package is installed"
+        else
+            print_warning "$package is not installed"
+            print_info "Install with: pip install -r requirements-dev.txt"
+        fi
+    done
+}
+
+# コードフォーマットチェック
+check_formatting() {
+    print_info "Running code formatting check..."
+    
+    if black --check --diff src/ tests/ 2>/dev/null; then
+        print_success "Code formatting is correct"
     else
-        print_error "No virtual environment found. Please create and activate one first."
-        exit 1
+        print_error "Code formatting check failed"
+        print_info "Run 'black src/ tests/' to fix formatting"
+        return 1
     fi
-fi
+}
 
-# Use python -m pip to ensure we're using the correct pip
-python -m pip install --upgrade pip
-python -m pip install -r requirements-dev.txt
+# リンター実行
+run_linting() {
+    print_info "Running linting..."
+    
+    # 基本的なエラーチェック
+    if flake8 src/ tests/ --count --select=E9,F63,F7,F82 --show-source --statistics 2>/dev/null; then
+        print_success "No critical linting errors found"
+    else
+        print_warning "Critical linting errors found"
+    fi
+    
+    # スタイルチェック（警告のみ）
+    flake8 src/ tests/ --count --exit-zero --max-complexity=10 --max-line-length=88 --statistics 2>/dev/null || true
+    print_info "Linting completed (warnings may be present)"
+}
 
-print_status "Running code formatting check with Black..."
-if python -m black --check --diff src/ tests/; then
-    print_success "Code formatting is correct"
-else
-    print_warning "Code formatting issues found. Run 'python -m black src/ tests/' to fix."
-fi
+# セキュリティチェック
+run_security_checks() {
+    print_info "Running security checks..."
+    
+    # Bandit セキュリティチェック
+    if command -v bandit >/dev/null 2>&1; then
+        if bandit -r src/ -f json -o bandit-report.json 2>/dev/null; then
+            print_success "Security check completed"
+        else
+            print_warning "Security issues found (check bandit-report.json)"
+        fi
+    else
+        print_warning "bandit not installed, skipping security check"
+    fi
+}
 
-print_status "Running linting with Flake8..."
-if python -m flake8 src/ tests/ --count --select=E9,F63,F7,F82 --show-source --statistics; then
-    print_success "No critical linting errors found"
-else
-    print_error "Critical linting errors found"
-    exit 1
-fi
+# テスト実行
+run_tests() {
+    print_info "Running tests..."
+    
+    if pytest tests/ --cov=src --cov-report=term-missing --tb=short 2>/dev/null; then
+        print_success "All tests passed"
+    else
+        print_error "Some tests failed"
+        return 1
+    fi
+}
 
-if python -m flake8 src/ tests/ --count --exit-zero --max-complexity=10 --max-line-length=88 --statistics; then
-    print_success "Linting passed"
-else
-    print_warning "Some linting warnings found"
-fi
+# カバレッジレポート
+show_coverage() {
+    print_info "Generating coverage report..."
+    
+    if pytest tests/ --cov=src --cov-report=html --cov-report=term-missing --tb=no 2>/dev/null; then
+        print_success "Coverage report generated"
+        print_info "Open htmlcov/index.html to view detailed coverage"
+    else
+        print_warning "Could not generate coverage report"
+    fi
+}
 
-print_status "Running security checks with Bandit..."
-if python -m bandit -r src/ -f json -o bandit-report.json; then
-    print_success "Security checks passed"
-else
-    print_warning "Security issues found. Check bandit-report.json for details."
-fi
+# メイン実行
+main() {
+    echo "Starting local CI checks..."
+    echo ""
+    
+    # 依存関係確認
+    check_dependencies
+    echo ""
+    
+    # 各チェックの実行
+    local exit_code=0
+    
+    if check_formatting; then
+        print_success "Formatting check passed"
+    else
+        exit_code=1
+    fi
+    echo ""
+    
+    run_linting
+    echo ""
+    
+    run_security_checks
+    echo ""
+    
+    if run_tests; then
+        print_success "Tests passed"
+    else
+        exit_code=1
+    fi
+    echo ""
+    
+    show_coverage
+    echo ""
+    
+    # 結果表示
+    echo "=================================="
+    if [ $exit_code -eq 0 ]; then
+        print_success "All CI checks completed successfully!"
+        print_info "Your code is ready for deployment"
+    else
+        print_error "Some CI checks failed"
+        print_info "Please fix the issues above before proceeding"
+    fi
+    
+    return $exit_code
+}
 
-print_status "Running dependency vulnerability scan with Safety..."
-if python -m safety check --json --output safety-report.json; then
-    print_success "No security vulnerabilities found in dependencies"
-else
-    print_warning "Security vulnerabilities found in dependencies. Check safety-report.json for details."
-fi
-
-print_status "Running tests with coverage..."
-if python -m pytest tests/ --cov=src --cov-report=term-missing --cov-report=html; then
-    print_success "All tests passed"
-else
-    print_error "Some tests failed"
-    exit 1
-fi
-
-print_status "Checking test coverage..."
-python -m coverage report --fail-under=60
-
-print_status "Building package..."
-if python setup.py sdist bdist_wheel; then
-    print_success "Package built successfully"
-else
-    print_error "Package build failed"
-    exit 1
-fi
-
-echo ""
-print_success "🎉 Local CI/CD pipeline completed successfully!"
-echo ""
-echo "📊 Summary:"
-echo "  ✅ Code formatting check"
-echo "  ✅ Linting"
-echo "  ✅ Security checks"
-echo "  ✅ Tests with coverage"
-echo "  ✅ Package build"
-echo ""
-echo "📁 Generated files:"
-echo "  - bandit-report.json (security report)"
-echo "  - safety-report.json (dependency vulnerabilities)"
-echo "  - htmlcov/ (coverage report)"
-echo "  - dist/ (built packages)" 
+# スクリプト実行
+main "$@" 

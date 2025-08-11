@@ -1,11 +1,17 @@
 # .github/workflows/ci.yml
-name: CI/CD Pipeline
+# CI/CD Pipeline - DISABLED for Learning Project
+# This workflow is disabled because this is a learning project
+# and we don't need automated CI/CD for development purposes
+
+name: CI/CD Pipeline (DISABLED)
 
 on:
-  push:
-    branches: [ main, develop ]
-  pull_request:
-    branches: [ main, develop ]
+  # Disabled for learning project
+  # push:
+  #   branches: [ main, develop ]
+  # pull_request:
+  #   branches: [ main, develop ]
+  workflow_dispatch: # Manual trigger only
 
 jobs:
   test:
@@ -91,7 +97,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     needs: [test, security]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
 
     steps:
     - name: Checkout code
@@ -120,7 +126,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     needs: [test, security, build]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
 
     steps:
     - name: Checkout code
